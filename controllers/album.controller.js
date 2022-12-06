@@ -1,6 +1,7 @@
 const Album = require('../models/Album')
 const path = require('path');
 const fs = require('fs');
+const rimraf = require('rimraf');
 
 const albums = async(req, res) => {
     const albums = await Album.find();
@@ -14,11 +15,9 @@ const albums = async(req, res) => {
 }
 const album = async(req, res) => {
     try {
-        console.log(req.params.id);
         const idAlbum = req.params.id;
         const album = await Album.findById(idAlbum);
 
-        console.log(album);
         res.render('album', {
             title: `Mon Album ${album.title}`,
             album,
@@ -63,13 +62,31 @@ const addImage = async (req, res) => {
     const idAlbum = req.params.id;
     const album = await Album.findById(idAlbum);
 
-    console.log(req.files);
-    const imageName = req.files.image.name;
+
+    if (!req?.files?.image)
+    {
+        req.flash('error', 'Aucun fichier mis en ligne');
+        res.redirect(`/albums/${idAlbum}`);
+        return;
+    }
+    const image = req.files.image;
+    if (image.mimetype != 'image/jpeg' && image.mimetype != 'image/png') {
+        req.flash('error', 'Fichiers JPG & PNG accepté uniquement');
+        res.redirect(`/albums/${idAlbum}`);
+        return;
+    }
+
+    if (image.size > 10000000) {
+        req.flash('error', 'Fichier trop gros');
+        res.redirect(`/albums/${idAlbum}`);
+        return;
+    }
+
+    const imageName = image.name;
 
     const folderPath = path.join(__dirname, '../public/uploads', idAlbum);
     fs.mkdirSync(folderPath,{recursive:true});
  
-
     const localPath = path.join(folderPath, imageName);
     console.log(folderPath);
     console.log(localPath);
@@ -82,6 +99,35 @@ const addImage = async (req, res) => {
     res.redirect(`/albums/${idAlbum}`);
 }
 
+const deleteImage = async (req, res) => {
+    const idAlbum = req.params.id;
+    const album = await Album.findById(idAlbum);
+
+    const imageIndex = req.params.imageIndex;
+    const image = album.images[imageIndex];
+    if (!image) {
+        res.redirect(`/albums/${idAlbum}`);
+        return;
+    }
+    album.images.splice(imageIndex, 1);
+    await album.save();
+
+    const imagePath = path.join(__dirname, '../public/uploads', idAlbum, image);
+    fs.unlinkSync(imagePath);
+
+    res.redirect(`/albums/${idAlbum}`);
+}
+
+const deleteAlbum = async (req, res) => {
+    const idAlbum = req.params.id;
+    await Album.findByIdAndDelete(idAlbum);
+
+    const albumPath = path.join(__dirname, '../public/uploads', idAlbum);
+    rimraf(albumPath, (err) => {
+        res.redirect('/albums');
+
+    });
+};
 
 module.exports = {
     albums,
@@ -89,4 +135,7 @@ module.exports = {
     createAlbum,
     album,
     addImage,
+    deleteImage,
+    deleteAlbum,
+
 }
