@@ -1,9 +1,10 @@
 const Album = require('../models/Album')
+const catchAsync = require('../helpers/catchAsync')
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
 
-const albums = async(req, res) => {
+const albums = catchAsync(async (req, res) => {
     const albums = await Album.find();
     //console.log(albums);
 
@@ -12,8 +13,8 @@ const albums = async(req, res) => {
         //albums
         albums: albums
     });
-}
-const album = async(req, res) => {
+});
+const album = catchAsync(async(req, res) => {
     try {
         const idAlbum = req.params.id;
         const album = await Album.findById(idAlbum);
@@ -28,7 +29,7 @@ const album = async(req, res) => {
         res.redirect('/404');
         res.send(err + 'Page non trouvée');
     }
-};
+});
 
 const createAlbumForm = (req, res) => {
     res.render('new-album', {
@@ -38,7 +39,7 @@ const createAlbumForm = (req, res) => {
 };
 
 
-const createAlbum = async (req, res) => {
+const createAlbum = catchAsync(async (req, res) => {
     try {
         if (!req.body.albumTitle) {
             req.flash('error', 'Le titre ne doit pas être vide!');
@@ -55,16 +56,15 @@ const createAlbum = async (req, res) => {
         req.flash('error', 'Erreur lors de la création de l\'album');
         res.redirect('/album/create');
    }
-};
+});
 
 
-const addImage = async (req, res) => {
+const addImage = catchAsync(async (req, res) => {
     const idAlbum = req.params.id;
     const album = await Album.findById(idAlbum);
 
 
-    if (!req?.files?.image)
-    {
+    if (!req?.files?.image) {
         req.flash('error', 'Aucun fichier mis en ligne');
         res.redirect(`/albums/${idAlbum}`);
         return;
@@ -85,7 +85,7 @@ const addImage = async (req, res) => {
     const imageName = image.name;
 
     const folderPath = path.join(__dirname, '../public/uploads', idAlbum);
-    fs.mkdirSync(folderPath,{recursive:true});
+    fs.mkdirSync(folderPath, { recursive: true });
  
     const localPath = path.join(folderPath, imageName);
     console.log(folderPath);
@@ -97,9 +97,9 @@ const addImage = async (req, res) => {
     await album.save();
 
     res.redirect(`/albums/${idAlbum}`);
-}
+});
 
-const deleteImage = async (req, res) => {
+const deleteImage = catchAsync(async (req, res) => {
     const idAlbum = req.params.id;
     const album = await Album.findById(idAlbum);
 
@@ -116,9 +116,9 @@ const deleteImage = async (req, res) => {
     fs.unlinkSync(imagePath);
 
     res.redirect(`/albums/${idAlbum}`);
-}
+});
 
-const deleteAlbum = async (req, res) => {
+const deleteAlbum = catchAsync(async (req, res) => {
     const idAlbum = req.params.id;
     await Album.findByIdAndDelete(idAlbum);
 
@@ -127,7 +127,7 @@ const deleteAlbum = async (req, res) => {
         res.redirect('/albums');
 
     });
-};
+});
 
 module.exports = {
     albums,
