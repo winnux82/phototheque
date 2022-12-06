@@ -64,6 +64,20 @@ const addImage = async (req, res) => {
     const album = await Album.findById(idAlbum);
 
     console.log(req.files);
+    const imageName = req.files.image.name;
+
+    const folderPath = path.join(__dirname, '../public/uploads', idAlbum);
+    fs.mkdirSync(folderPath,{recursive:true});
+ 
+
+    const localPath = path.join(folderPath, imageName);
+    console.log(folderPath);
+    console.log(localPath);
+    
+    await req.files.image.mv(localPath);
+
+    album.images.push(imageName);
+    await album.save();
 
     res.redirect(`/albums/${idAlbum}`);
 }
